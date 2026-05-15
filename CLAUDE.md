@@ -142,11 +142,11 @@ invest_brief/
 2. 改 `prompts/daily_brief.txt`（加输出格式）
 3. 改 `config/sectors.yaml`（加板块关键词）
 
-### 调试不发推送
-- `DRY_RUN=true python src/main.py`
-
-### 终端手动跑一次
-- `source venv/bin/activate && python src/main.py`
+### 跑当天 / 指定日期 / 调试
+- `source venv/bin/activate && python src/main.py`                       # 当天
+- `python src/main.py --date 2025-11-01`                                # 历史回测
+- `DRY_RUN=true python src/main.py`                                     # 只生成不推送
+- `DRY_RUN=true python src/main.py --date 2025-11-01`                   # 历史回测 + 不推送
 
 ## 注意事项
 
