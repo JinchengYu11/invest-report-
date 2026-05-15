@@ -1,0 +1,199 @@
+# 关注板块配置
+# 在这里定义板块、关键词、对应的 Wind 指数
+# 改完保存即可，不需要重启脚本
+# 顺序决定关键词匹配优先级（排前面的板块先匹配）
+
+sectors:
+  # ══════ 科技产业链 ══════
+
+  - name: AI算力
+    priority: 1
+    keywords:
+      - GPU
+      - 算力
+      - 英伟达
+      - NVIDIA
+      - 大模型
+      - 推理芯片
+      - 训练芯片
+      - HBM
+      - 光模块
+      - 液冷
+      - 寒武纪
+      - 海光
+      - 华为昇腾
+      - OpenAI
+      - Anthropic
+      - AI服务器
+      - 光通信
+      - 特种光纤
+      - 数据中心
+    wind_index: 8841415.WI
+    related_stocks:
+      - 688256.SH  # 寒武纪
+      - 688041.SH  # 海光信息
+
+  - name: 人形机器人
+    priority: 1
+    keywords:
+      - 人形机器人
+      - 具身智能
+      - Optimus
+      - Figure AI
+      - 宇树科技
+      - 优必选
+      - 减速器
+      - 谐波减速器
+      - 丝杠
+      - 滚珠丝杠
+      - 空心杯电机
+      - 伺服电机
+      - 六维力传感器
+      - 灵巧手
+      - 机器人关节
+      - 具身智能体
+      - 特斯拉机器人
+      - 傅利叶
+      - 智元
+      - 银河通用
+    wind_index: ""
+    related_stocks: []
+
+  - name: 半导体
+    priority: 1
+    keywords:
+      - 先进封装
+      - CoWoS
+      - chiplet
+      - 光刻机
+      - ASML
+      - 台积电
+      - 中芯国际
+      - 北方华创
+      - 中微公司
+      - 出口管制
+      - 实体清单
+      - 芯片法案
+      - EDA
+      - 光刻胶
+      - 第三代半导体
+      - SiC
+      - GaN
+      - 晶圆
+      - 先进制程
+      - 成熟制程
+      - 半导体设备
+      - 半导体材料
+    wind_index: 8841349.WI
+    related_stocks: []
+
+  - name: 智能驾驶
+    priority: 1
+    keywords:
+      - 智能驾驶
+      - 自动驾驶
+      - FSD
+      - 端到端智驾
+      - 城市NOA
+      - Robotaxi
+      - 激光雷达
+      - 禾赛
+      - 速腾聚创
+      - 智驾芯片
+      - 地平线
+      - 黑芝麻
+      - 德赛西威
+      - 华为ADS
+      - XNGP
+      - 萝卜快跑
+      - 小马智行
+      - L3级
+      - L4级
+    wind_index: ""
+    related_stocks: []
+
+  # ══════ 宏观/传统行业 ══════
+
+  - name: 新能源车
+    priority: 2
+    keywords:
+      - 新能源车
+      - 比亚迪
+      - 特斯拉
+      - 小鹏
+      - 蔚来
+      - 理想
+      - 销量
+      - 电池
+      - 宁德时代
+      - 亿纬锂能
+      - 锂电
+      - 充电桩
+      - 换电
+    wind_index: 8841431.WI
+    related_stocks:
+      - 300750.SZ  # 宁德时代
+      - 300014.SZ  # 亿纬锂能
+
+  - name: 储能
+    priority: 2
+    keywords:
+      - 储能
+      - 电网侧
+      - 工商业储能
+      - 户储
+      - 钠离子电池
+      - 钠电
+      - 固态电池
+      - 招标
+      - 储能系统
+    wind_index: 8841418.WI
+    related_stocks:
+      - 300750.SZ
+      - 300014.SZ
+
+  - name: 国债与利率
+    priority: 1
+    keywords:
+      - 10年期国债
+      - 国债收益率
+      - 央行
+      - MLF
+      - 逆回购
+      - 降准
+      - 降息
+      - 公开市场
+      - LPR
+      - 社融
+      - M2
+    wind_index: ""
+    track_yields:
+      - CN10YR.IRS
+      - US10YR.IRS
+
+  - name: 海外宏观
+    priority: 2
+    keywords:
+      - 美联储
+      - 鲍威尔
+      - FOMC
+      - 非农
+      - CPI
+      - 美债
+      - 加息
+      - 降息
+      - 美股
+      - 纳指
+      - 标普
+    wind_index: ""
+    related_stocks: []
+
+# 全局过滤规则
+filters:
+  blacklist_keywords:
+    - 涨停潮
+    - 跌停潮
+    - 主力净流入
+    - 龙虎榜
+    - 涨幅榜
+  min_title_length: 10

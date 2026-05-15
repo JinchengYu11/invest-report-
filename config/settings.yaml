@@ -1,0 +1,40 @@
+# 全局配置
+
+schedule:
+  daily_time: "07:30"        # 每天推送时间
+  timezone: "Asia/Shanghai"
+
+llm:
+  provider: deepseek
+  model: deepseek-v4-pro
+  base_url: https://api.deepseek.com
+  thinking_enabled: true     # 复杂分析开 enabled，简单摘要可关
+  reasoning_effort: high     # low / medium / high / xhigh
+  temperature: 0.3           # 投资点评要稳
+  max_tokens: 4000
+  timeout_seconds: 60
+  max_retries: 3
+
+output:
+  format: xiaohongshu        # xiaohongshu / wechat / plain
+  body_max_chars: 800
+  cover_image:
+    width: 900
+    height: 1200
+    font: "PingFang SC"      # macOS 自带中文字体
+  hashtags_count: 6
+  include_disclaimer: true
+
+news:
+  fetch_window_hours: 18     # 抓过去多少小时（早 7 点跑就抓昨日 13:00 后的）
+  max_per_sector: 8
+  dedup_similarity: 0.85
+
+publish:
+  serverchan_enabled: true
+  email_enabled: false
+  email_to: ""
+
+debug:
+  cache_enabled: true        # 调试时缓存抓的数据
+  dry_run: false             # true = 只生成不推送

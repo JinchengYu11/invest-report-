@@ -1,0 +1,31 @@
+# 核心
+python-dotenv>=1.0.0
+pyyaml>=6.0
+loguru>=0.7.0
+tenacity>=8.2.0
+pydantic>=2.0
+
+# HTTP / 抓取
+requests>=2.31.0
+httpx>=0.25.0
+feedparser>=6.0.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# AI
+openai>=1.40.0
+
+# 数据
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Wind（在 Wind 终端里安装，不通过 pip）
+# WindPy
+
+# 图表
+matplotlib>=3.7.0
+pillow>=10.0.0
+
+# 工具
+python-dateutil>=2.8.0
+tqdm>=4.65.0
