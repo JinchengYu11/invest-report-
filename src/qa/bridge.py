@@ -137,6 +137,12 @@ def ask_dexter(
     if not env["DEEPSEEK_API_KEY"]:
         raise RuntimeError("DEEPSEEK_API_KEY 未在 .env 中设置")
 
+    # 可选：搜索 API（Tavily / Exa），有就传
+    for key in ["TAVILY_API_KEY", "EXASEARCH_API_KEY"]:
+        val = os.getenv(key, "")
+        if val:
+            env[key] = val
+
     # 确保 bun 在 PATH 中
     bun_home = os.path.expanduser("~/.bun")
     bun_bin = os.path.join(bun_home, "bin")
