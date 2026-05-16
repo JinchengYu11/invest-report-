@@ -21,6 +21,7 @@
 |------|------|------|
 | 新闻采集（国内） | `src/collectors/news_cls.py` | 完成（财联社电报） |
 | 新闻采集（全球） | `src/collectors/news_global.py` | 完成（Google News RSS → Reuters/Bloomberg 等） |
+| 研报采集 | `src/collectors/news_report.py` | 完成（东方财富研报 → 券商深度） |
 | 行情数据 | `src/collectors/market_data.py` | 完成（新浪 + 东方财富免费 API） |
 | 行情数据（备选） | `src/collectors/wind_data.py` | 占位（等 WindPy 可用后切回） |
 | 过滤分组 | `src/processors/filter.py` | 完成 |
@@ -88,6 +89,7 @@ invest_brief/
 │   ├── collectors/
 │   │   ├── news_cls.py      # 财联社电报采集
 │   │   ├── news_global.py   # Google News RSS 全球新闻
+│   │   ├── news_report.py   # 东方财富研报采集
 │   │   ├── market_data.py   # 免费行情数据（新浪+东方财富）
 │   │   └── wind_data.py     # Wind 行情数据（占位，等 WindPy）
 │   ├── processors/
