@@ -84,22 +84,20 @@ def _fetch_reports(stock_code: str, limit: int = 8) -> list[dict]:
     code_num = stock_code.split(".")[0]
     try:
         df = ak.stock_research_report_em(symbol=code_num)
-    except Exception:
-        logger.warning(f"研报 API 失败（{stock_code}），返回空列表")
+        if df is None or (hasattr(df, "empty") and df.empty):
+            return []
+        reports = []
+        for _, row in df.head(limit).iterrows():
+            reports.append({
+                "title": str(row.get("报告名称", "")),
+                "org": str(row.get("机构", "")),
+                "date": str(row.get("日期", ""))[:10],
+                "rating": str(row.get("东财评级", "")),
+            })
+        return reports
+    except Exception as e:
+        logger.warning(f"研报 API 失败（{stock_code}）：{e}")
         return []
-
-    if df is None or df.empty:
-        return []
-
-    reports = []
-    for _, row in df.head(limit).iterrows():
-        reports.append({
-            "title": str(row.get("报告名称", "")),
-            "org": str(row.get("机构", "")),
-            "date": str(row.get("日期", ""))[:10],
-            "rating": str(row.get("东财评级", "")),
-        })
-    return reports
 
 
 def _fetch_market_context() -> str:
@@ -150,63 +148,44 @@ def build_report_prompt(stock_code: str) -> str:
     # 2) 研报
     reports = _fetch_reports(stock_code)
 
-    # 3) 大盘背景
-    market_ctx = _fetch_market_context()
-
     # ── 组装提问 ──
-    code_num = stock_code.split(".")[0]
     name = quote["name"]
 
-    prompt = f"""请为 {name}（{stock_code}）生成一份个股深度分析报告。
-
-{market_ctx}
-
-【个股行情】
-  最新价：{quote["price"]} 元
-  昨收：{quote["prev_close"]} 元
-  今开：{quote["open"]} 元
-  最高/最低：{quote["high"]} / {quote["low"]}
-  日涨跌：{(quote["price"] - quote["prev_close"]) / quote["prev_close"] * 100:+.2f}%
-  成交额：{quote["amount"] / 1e8:.1f} 亿元
-
-【近期券商研报】
-"""
+    # 研报摘要
+    report_lines = ""
     if reports:
-        for r in reports[:6]:
-            prompt += f"  [{r['date']}] {r['org']} | {r['title']} | 评级：{r['rating']}\n"
+        for r in reports[:4]:
+            report_lines += f"  [{r['date']}] {r['org']} | {r['title']} | {r['rating']}\n"
     else:
-        prompt += "  （暂无研报数据）\n"
+        report_lines = "  （暂无）\n"
 
-    prompt += f"""
-【输出格式要求】
-请按以下结构输出报告：
+    # 大盘简况（只取科创50做参考）
+    idx_hint = ""
+    try:
+        from src.collectors.market_data import fetch_daily_snapshot
+        snap = fetch_daily_snapshot()
+        if snap and snap.index_changes:
+            sci50 = snap.index_changes.get("科创50", {})
+            if sci50:
+                idx_hint = f"科创50{sci50.get('pct',0):+.2f}%"
+            if snap.cn10y:
+                idx_hint += f"，CN10Y={snap.cn10y}%"
+            if snap.us10y:
+                idx_hint += f"，US10Y={snap.us10y}%"
+    except Exception:
+        pass
 
-## {name}（{stock_code}）深度分析
-
-**一句话结论**（30 字以内）
-
-### 1. 估值与市场表现
-- 当前价格位置（近期区间中的位置）
-- 成交活跃度判断
-- 如果有盈利预测数据，结合研报评级给出估值参考
-
-### 2. 产业链位置
-- 公司所在产业链环节
-- 上下游关系
-- 竞争格局中的位置
-
-### 3. 近期催化剂与风险
-- 最近 1-3 个月的正面驱动因素
-- 需要关注的风险点
-
-### 4. 机构观点摘要
-- 汇总券商的主要逻辑和分歧点
-
-### 5. 值得盯的指标
-- 未来 1-3 个月应该重点跟踪的 2-3 个信号
-
-语气冷静，不下买卖建议，像写给自己的研究笔记。"""
-
+    prompt = (
+        f"为{name}（{stock_code}）写个股深度分析。"
+        f"最新价{quote['price']}元，昨收{quote['prev_close']}，"
+        f"日涨跌{(quote['price']-quote['prev_close'])/quote['prev_close']*100:+.2f}%，"
+        f"成交{quote['amount']/1e8:.1f}亿。"
+        f"大盘：{idx_hint}。"
+        f"研报：{report_lines}"
+        f"请输出：1.估值与市场表现 2.产业链位置 3.近期催化剂与风险 "
+        f"4.机构观点摘要 5.值得盯的指标（2-3个信号）。"
+        f"冷静、不下买卖建议。用Markdown。"
+    )
     return prompt
 
 

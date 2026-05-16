@@ -60,33 +60,57 @@ def cmd_ask(args):
 
 
 def cmd_report(args):
-    """个股深度分析"""
-    from src.qa.report import generate_report
+    """个股深度分析 → 生成报告 + 保存文件 + 推微信"""
+    from src.qa.report import generate_report, _fetch_stock_quote
 
     stock_code = args.stock.upper()
     if "." not in stock_code:
-        # 纯数字 → 尝试补后缀
         if stock_code.startswith(("688", "600", "601", "603", "605")):
             stock_code += ".SH"
         else:
             stock_code += ".SZ"
 
-    print(f"📄 生成 {stock_code} 深度分析报告...")
-    print("   （约需 2-5 分钟，可加 --timeout 调整）")
+    # 获取股票简称
+    try:
+        quote = _fetch_stock_quote(stock_code)
+        stock_name = quote["name"]
+    except Exception:
+        stock_name = stock_code
+
+    print(f"📄 生成 {stock_name}（{stock_code}）深度分析报告...")
+    print("   （约需 2-5 分钟）")
     print()
 
     try:
         report = generate_report(stock_code, timeout_seconds=args.timeout)
-        print()
-        print("=" * 60)
-        print(report)
-        print("=" * 60)
     except FileNotFoundError as e:
         print(f"\n❌ {e}")
         sys.exit(1)
     except Exception as e:
         print(f"\n❌ 报告生成失败：{e}")
         sys.exit(1)
+
+    # 保存到文件
+    from datetime import date
+    report_dir = ROOT / "output" / "reports" / stock_code.split(".")[0]
+    report_dir.mkdir(parents=True, exist_ok=True)
+    report_path = report_dir / f"{date.today().isoformat()}.md"
+    report_path.write_text(report, encoding="utf-8")
+    print(f"\n📁 已保存：{report_path}")
+
+    # 推送微信
+    if not args.no_push:
+        try:
+            from src.publishers.serverchan import push
+            # Server 酱有长度限制，标题用报告摘要，正文推送
+            first_line = report.split("\n")[0].lstrip("#").strip()[:80]
+            push(
+                title=f"📄 {stock_name} 深度报告 - {date.today().isoformat()}",
+                content=report,
+            )
+            print("📲 已推送到微信")
+        except Exception as e:
+            print(f"⚠️ 微信推送失败：{e}")
 
 
 def main():
@@ -117,6 +141,7 @@ def main():
     p_report = sub.add_parser("report", help="个股深度分析")
     p_report.add_argument("stock", type=str, help="股票代码，如 688008.SH")
     p_report.add_argument("--timeout", type=int, default=600, help="超时秒数（默认 600）")
+    p_report.add_argument("--no-push", action="store_true", help="不推送到微信")
 
     args = parser.parse_args()
 
