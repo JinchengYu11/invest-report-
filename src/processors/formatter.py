@@ -88,17 +88,28 @@ def to_xiaohongshu_draft(
             default_flow_style=False,
         )
 
+    # ── 生成封面图 ──
+    cover_path = None
+    if wind_snapshot:
+        try:
+            from src.utils.chart import generate_cover
+            cover_path = generate_cover(wind_snapshot, title, output_dir)
+            cover_path = str(cover_path)
+        except Exception as e:
+            logger.warning(f"封面图生成失败：{e}")
+
     draft = DraftPackage(
         date=date_str,
         title=title,
         body_markdown=summary_text,
         hashtags=hashtags,
-        cover_image_path=None,  # 图表功能后续迭代
+        cover_image_path=cover_path,
         chart_paths=[],
     )
 
     logger.info(f"草稿已保存 → {output_dir}")
     logger.info(f"  body.md  : {len(summary_text)} 字符")
+    logger.info(f"  cover.png: {'✓' if cover_path else '✗'}")
     logger.info(f"  hashtags : {' '.join(hashtags) if hashtags else '(未提取到)'}")
 
     return draft

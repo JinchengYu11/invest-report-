@@ -26,12 +26,13 @@
 | 过滤分组 | `src/processors/filter.py` | 完成 |
 | AI 摘要 | `src/processors/summarizer.py` | 完成（DeepSeek V4 Pro，thinking 模式） |
 | 草稿生成 | `src/processors/formatter.py` | 完成 |
+| 封面图 | `src/utils/chart.py` | 完成（matplotlib 900×1200） |
 | 推送 | `src/publishers/serverchan.py` | 完成（Server 酱 → 微信） |
 | 定时 | `scripts/com.user.invest_brief.plist` | ✅ 已部署（每天 7:30） |
 | LLM 容错 | `src/utils/llm.py` | ✅ 已加固（180s 超时，5 次重试） |
 
 **尚未完成**：
-- 封面图 + 图表生成（`utils/chart.py`）
+- 更多图表类型（行业热力图、历史走势小图）
 - WindPy 接入（Mac App Store 版 Wind 不支持 Python 接口，需联系客服要非沙盒版 DMG）
 - 第三个新闻源（华尔街见闻，API 已锁需登录，暂不可用）
 
@@ -97,7 +98,8 @@ invest_brief/
 │   │   └── serverchan.py  # Server 酱微信推送
 │   └── utils/
 │       ├── models.py      # 数据模型
-│       └── llm.py         # DeepSeek 客户端封装
+│       ├── llm.py         # DeepSeek 客户端封装
+│       └── chart.py       # 封面图生成（matplotlib）
 │
 ├── prompts/
 │   ├── framework.md       # ⭐ 投资框架（产业链地图 + 点评价值观）
