@@ -64,7 +64,7 @@ def main():
 
     # ───── 步骤 1：采集新闻 ─────
     logger.info("[1/5] 采集新闻 ...")
-    from src.collectors import news_cls, wind_data
+    from src.collectors import news_cls, market_data
 
     raw_news = []
     try:
@@ -73,9 +73,9 @@ def main():
         logger.error(f"财联社采集失败：{e}")
 
     try:
-        wind_snapshot = wind_data.fetch_daily_snapshot(run_date)
+        wind_snapshot = market_data.fetch_daily_snapshot(run_date)
     except Exception as e:
-        logger.error(f"Wind 数据采集失败：{e}")
+        logger.error(f"行情数据采集失败：{e}")
         wind_snapshot = None
 
     if not raw_news:

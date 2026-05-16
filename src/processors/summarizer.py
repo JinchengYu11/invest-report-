@@ -82,14 +82,26 @@ def summarize_daily(
         cn10y_change = str(wind_snapshot.cn10y_change_bp) if wind_snapshot.cn10y_change_bp else "暂无"
         us10y = f"{wind_snapshot.us10y}%" if wind_snapshot.us10y else "暂无"
         us10y_change = str(wind_snapshot.us10y_change_bp) if wind_snapshot.us10y_change_bp else "暂无"
+
+        # ── 格式化行业板块强弱 ──
+        extra = wind_snapshot.extra
+        if extra:
+            top = extra.get("top_sectors", [])
+            bot = extra.get("bottom_sectors", [])
+            top_str = "、".join(f"{s['name']}+{s['pct']}%" for s in top[:5])
+            bot_str = "、".join(f"{s['name']}{s['pct']}%" for s in bot[:3])
+            sector_perf = f"  领涨：{top_str}\n  领跌：{bot_str}"
+        else:
+            sector_perf = "（暂无）"
     else:
-        date_str = "（Wind 不可用）"
-        index_str = "（Wind 数据暂不可用，请手动查看）"
+        date_str = "（数据不可用）"
+        index_str = "（数据暂不可用，请手动查看）"
         north_flow = "暂无"
         cn10y = "暂无"
         cn10y_change = "暂无"
         us10y = "暂无"
         us10y_change = "暂无"
+        sector_perf = "（暂无）"
 
     # ── 填模板 ──
     prompt = template.format(
@@ -101,6 +113,7 @@ def summarize_daily(
         cn10y_change=cn10y_change,
         us10y=us10y,
         us10y_change=us10y_change,
+        sector_performance=sector_perf,
         sectorized_news=_format_sectorized_news(grouped_news),
     )
 

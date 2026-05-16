@@ -10,6 +10,9 @@ A 股主要指数：{index_changes}
 10Y 国债收益率：{cn10y}（变动 {cn10y_change} bp）
 10Y 美债收益率：{us10y}（变动 {us10y_change} bp）
 
+今日行业板块强弱：
+{sector_performance}
+
 【按板块整理的新闻】
 {sectorized_news}
 
