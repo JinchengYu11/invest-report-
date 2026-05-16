@@ -12,8 +12,8 @@ llm:
   reasoning_effort: high     # low / medium / high / xhigh
   temperature: 0.3           # 投资点评要稳
   max_tokens: 4000
-  timeout_seconds: 60
-  max_retries: 3
+  timeout_seconds: 180
+  max_retries: 5
 
 output:
   format: xiaohongshu        # xiaohongshu / wechat / plain

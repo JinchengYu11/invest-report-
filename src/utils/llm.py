@@ -51,9 +51,10 @@ class LLMClient:
             api_key=api_key,
             base_url=llm_cfg["base_url"],
             timeout=self.timeout,
+            max_retries=0,  # 由 tenacity 统一控制重试，避免双重重试
         )
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
+    @retry(stop=stop_after_attempt(5), wait=wait_exponential(min=3, max=60))
     def chat(
         self,
         messages: list,
