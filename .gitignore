@@ -32,3 +32,6 @@ vendor/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Dexter scratchpad
+.dexter/

@@ -60,17 +60,33 @@ def cmd_ask(args):
 
 
 def cmd_report(args):
-    """个股深度分析（占位）"""
-    print(f"📄 个股深度分析 — {args.stock}")
+    """个股深度分析"""
+    from src.qa.report import generate_report
+
+    stock_code = args.stock.upper()
+    if "." not in stock_code:
+        # 纯数字 → 尝试补后缀
+        if stock_code.startswith(("688", "600", "601", "603", "605")):
+            stock_code += ".SH"
+        else:
+            stock_code += ".SZ"
+
+    print(f"📄 生成 {stock_code} 深度分析报告...")
+    print("   （约需 2-5 分钟，可加 --timeout 调整）")
     print()
-    print("🚧 FinSight 模块尚未实现，计划后续提供：")
-    print("   - 盈利预测与估值分析")
-    print("   - 产业链位置与竞争格局")
-    print("   - 机构一致预期变化")
-    print("   - 近期催化剂与风险")
-    print()
-    print(f"   当前可暂时用 ask 子命令替代：")
-    print(f"   python run.py ask \"分析 {args.stock} 近期走势和基本面\"")
+
+    try:
+        report = generate_report(stock_code, timeout_seconds=args.timeout)
+        print()
+        print("=" * 60)
+        print(report)
+        print("=" * 60)
+    except FileNotFoundError as e:
+        print(f"\n❌ {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n❌ 报告生成失败：{e}")
+        sys.exit(1)
 
 
 def main():
@@ -95,11 +111,12 @@ def main():
     p_ask = sub.add_parser("ask", help="Dexter 即时金融问答")
     p_ask.add_argument("question", type=str, help="你的金融问题")
     p_ask.add_argument("--no-market", action="store_true", help="不附加 A 股行情上下文")
-    p_ask.add_argument("--timeout", type=int, default=300, help="超时秒数（默认 300）")
+    p_ask.add_argument("--timeout", type=int, default=600, help="超时秒数（默认 600）")
 
     # report
-    p_report = sub.add_parser("report", help="个股深度分析（后续）")
-    p_report.add_argument("stock", type=str, help="股票代码，如 300750.SZ")
+    p_report = sub.add_parser("report", help="个股深度分析")
+    p_report.add_argument("stock", type=str, help="股票代码，如 688008.SH")
+    p_report.add_argument("--timeout", type=int, default=600, help="超时秒数（默认 600）")
 
     args = parser.parse_args()
 

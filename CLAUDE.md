@@ -102,9 +102,10 @@ invest_brief/
 │   │   └── formatter.py   # DraftPackage 生成
 │   ├── publishers/
 │   │   └── serverchan.py  # Server 酱微信推送
-│   ├── qa/                   # 即时问答（Dexter 集成）
+│   ├── qa/                   # 即时问答 + 个股报告（Dexter 集成）
 │   │   ├── bridge.py          # Python ↔ Dexter 子进程桥接
-│   │   └── wind_tools.py      # A 股行情上下文注入
+│   │   ├── wind_tools.py      # A 股行情上下文注入
+│   │   └── report.py          # 个股深度报告（行情 + 研报 + 大盘 → Dexter 合成）
 │   └── utils/
 │       ├── models.py      # 数据模型
 │       ├── llm.py         # DeepSeek 客户端封装
@@ -189,7 +190,7 @@ python run.py ask "今天AI板块怎么样？"
 - `python run.py daily --dry-run`                                       # 只生成不推送
 - `DRY_RUN=true python src/main.py --date 2025-11-01`                   # 历史回测 + 不推送
 - `python run.py ask "今天AI板块怎么看？"`                                # Dexter 问答
-- `python run.py report 300750.SZ`                                      # 个股深度（后续）
+- `python run.py report 688008.SH`                                      # 个股深度报告
 
 ## 注意事项
 
