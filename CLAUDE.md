@@ -29,15 +29,14 @@
 | 草稿生成 | `src/processors/formatter.py` | 完成 |
 | 封面图 | `src/utils/chart.py` | 完成（matplotlib 900×1200） |
 | 推送 | `src/publishers/serverchan.py` | 完成（Server 酱 → 微信） |
-| 个股报告 | `src/qa/report.py` | 完成（行情+研报 → Dexter 合成 → 微信推送） |
+| 个股报告（快速） | `src/qa/report.py` | 完成（Dexter 合成，2-5 分钟，微信推送） |
+| 深度研报 | `src/research/runner.py` | 完成（FinSight，2 万字+ 图表，20-40 分钟） |
 | 定时 | `scripts/com.user.invest_brief.plist` | ✅ 已部署（每天 7:30） |
 | LLM 容错 | `src/utils/llm.py` | ✅ 已加固（180s 超时，5 次重试） |
 
 **尚未完成**：
-- 更多图表类型（行业热力图、历史走势小图）
 - WindPy 接入（等万得客服回复非沙盒版 Mac DMG）
 - 华尔街见闻新闻源（API 已锁需登录）
-- 报告支持美股（当前仅 A 股）
 
 ### 内容框架（已迭代多轮）
 
@@ -107,7 +106,9 @@ invest_brief/
 │   ├── qa/                   # 即时问答 + 个股报告（Dexter 集成）
 │   │   ├── bridge.py          # Python ↔ Dexter 子进程桥接
 │   │   ├── wind_tools.py      # A 股行情上下文注入
-│   │   └── report.py          # 个股深度报告（行情 + 研报 + 大盘 → Dexter 合成）
+│   │   └── report.py          # 个股快速报告（Dexter 合成）
+│   ├── research/              # 深度研报（FinSight 集成）
+│   │   └── runner.py          # FinSight 配置生成 + 运行 + 产物拷贝 + 通知
 │   └── utils/
 │       ├── models.py      # 数据模型
 │       ├── llm.py         # DeepSeek 客户端封装
@@ -163,6 +164,51 @@ python run.py ask "今天AI板块怎么样？"
 - modelPrefix=`deepseek-`，baseURL=`https://api.deepseek.com`
 - v4-pro 自动启用 thinking 模式
 
+## FinSight 深度研报
+
+FinSight（[RUC-NLPIR/FinSight](https://github.com/RUC-NLPIR/FinSight)）是一个多 Agent 金融研报系统，
+能一键生成 2 万字+、带专业图表的完整研报，质量接近券商研报。
+
+**部署步骤：**
+1. Python 3.11+ venv：`~/.pyenv/versions/3.11.11/bin/python3 -m venv venv_finsight`
+2. 安装依赖：`venv_finsight/bin/pip install -r vendor/finsight/requirements.txt`（跳过 browser-use）
+3. 注册 [SiliconFlow](https://siliconflow.cn)（VLM + Embedding，免费额度）
+4. 注册 [Serper](https://serper.dev)（搜索，免费 2500 次/月）
+5. 在项目 `.env` 中配置：
+   - `SILICONFLOW_API_KEY=sk-xxx`
+   - `SERPER_API_KEY=xxx`
+
+**工作原理：**
+```
+python run.py deep 688008.SH
+  → src/research/runner.py
+     → _sync_env() → 写入 vendor/finsight/.env
+     → _build_config() → 生成 my_config_auto.yaml
+     → _run_finsight() → subprocess 调 FinSight（DataCollector → DataAnalyzer → ReportGenerator）
+     → _copy_output() → 产物拷贝到 output/reports/YYYYMMDD_标的名/
+     → _notify() → Server 酱推送完成通知
+```
+
+**命令用法：**
+- `python run.py deep 688008.SH` — A 股个股
+- `python run.py deep NVDA` — 美股个股
+- `python run.py deep --type industry 储能` — 行业研报
+- `python run.py deep --type macro 美联储利率` — 宏观研报
+
+**FinSight 三 Agent 流水线：**
+1. DataCollector — 收集数据（akshare + yfinance + DeepSearchAgent 网络搜索）
+2. DataAnalyzer — 分析数据 + 生成图表（VLM 图表审评循环）
+3. ReportGenerator — 生成 DOCX/PDF 报告（pandoc 排版）
+
+**与 report 命令的区别：**
+| | report（Dexter） | deep（FinSight） |
+|---|---|---|
+| 深度 | 快速分析 | 完整研报 |
+| 耗时 | 2-5 分钟 | 20-40 分钟 |
+| 篇幅 | ~3000 字 | 2 万字+ |
+| 图表 | 无 | 专业图表（VLM 审评） |
+| 输出 | Markdown | DOCX + PDF + Markdown |
+
 ## 内容调优（最重要）
 
 输出质量 90% 取决于 prompt，不要改代码逻辑：
@@ -192,7 +238,8 @@ python run.py ask "今天AI板块怎么样？"
 - `python run.py daily --dry-run`                                       # 只生成不推送
 - `DRY_RUN=true python src/main.py --date 2025-11-01`                   # 历史回测 + 不推送
 - `python run.py ask "今天AI板块怎么看？"`                                # Dexter 问答
-- `python run.py report 688008.SH`                                      # 个股深度报告（→ 微信推送）
+- `python run.py report 688008.SH`                                      # 个股快速报告（Dexter）
+- `python run.py deep 688008.SH`                                        # 深度研报（FinSight，20-40 分钟）
 
 ## 注意事项
 
