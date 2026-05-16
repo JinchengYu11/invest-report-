@@ -64,13 +64,18 @@ def main():
 
     # ───── 步骤 1：采集新闻 ─────
     logger.info("[1/5] 采集新闻 ...")
-    from src.collectors import news_cls, market_data
+    from src.collectors import news_cls, news_global, market_data
 
     raw_news = []
     try:
         raw_news += news_cls.fetch(window_hours=18)
     except Exception as e:
         logger.error(f"财联社采集失败：{e}")
+
+    try:
+        raw_news += news_global.fetch(window_hours=36)
+    except Exception as e:
+        logger.error(f"Google News 采集失败：{e}")
 
     try:
         wind_snapshot = market_data.fetch_daily_snapshot(run_date)

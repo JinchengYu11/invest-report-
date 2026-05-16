@@ -19,7 +19,8 @@
 
 | 步骤 | 文件 | 状态 |
 |------|------|------|
-| 新闻采集 | `src/collectors/news_cls.py` | 完成（财联社电报） |
+| 新闻采集（国内） | `src/collectors/news_cls.py` | 完成（财联社电报） |
+| 新闻采集（全球） | `src/collectors/news_global.py` | 完成（Google News RSS → Reuters/Bloomberg 等） |
 | 行情数据 | `src/collectors/market_data.py` | 完成（新浪 + 东方财富免费 API） |
 | 行情数据（备选） | `src/collectors/wind_data.py` | 占位（等 WindPy 可用后切回） |
 | 过滤分组 | `src/processors/filter.py` | 完成 |
@@ -32,7 +33,7 @@
 **尚未完成**：
 - 封面图 + 图表生成（`utils/chart.py`）
 - WindPy 接入（Mac App Store 版 Wind 不支持 Python 接口，需联系客服要非沙盒版 DMG）
-- 第二个新闻源（华尔街见闻）
+- 第三个新闻源（华尔街见闻，API 已锁需登录，暂不可用）
 
 ### 内容框架（已迭代多轮）
 
@@ -85,7 +86,8 @@ invest_brief/
 │   ├── main.py            # 主入口（5 步流程已串联）
 │   ├── collectors/
 │   │   ├── news_cls.py      # 财联社电报采集
-│   │   ├── market_data.py   # 免费行情数据（新浪+东方财富，当前主力）
+│   │   ├── news_global.py   # Google News RSS 全球新闻
+│   │   ├── market_data.py   # 免费行情数据（新浪+东方财富）
 │   │   └── wind_data.py     # Wind 行情数据（占位，等 WindPy）
 │   ├── processors/
 │   │   ├── filter.py      # 去重 + 板块分组
