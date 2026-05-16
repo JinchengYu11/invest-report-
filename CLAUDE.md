@@ -10,7 +10,7 @@
 构建一个**个人投资研究助理系统**，每日自动：
 1. 抓取用户关注板块的新闻
 2. 调用 DeepSeek V4 Pro 做摘要 + 投资视角点评
-3. 生成投资备忘录草稿（后续加图表）
+3. 生成投资备忘录草稿 + 封面图 + 行情图表
 4. 推送到用户微信，**由用户人工审核后发布**（不自动发）
 
 ## 当前状态
@@ -62,12 +62,12 @@
 |---|---|---|
 | 语言 | Python 3.10+ | |
 | 操作系统 | macOS | |
-| AI 模型 | DeepSeek V4 Pro | `deepseek-v4-pro`，OpenAI 兼容协议，base_url `https://api.deepseek.com` |
-| 数据：行情/宏观 | WindPy | 需 Wind 终端常驻登录 |
-| 数据：新闻 | 财联社电报 | 公开 JSON 接口 |
+| AI 模型 | DeepSeek V4 Pro | `deepseek-v4-pro`，OpenAI 兼容协议 |
+| 数据：行情 | 新浪 + 东方财富 + akshare | 免费公开 API |
+| 数据：新闻 | 财联社 + Google News + 东方财富研报 | 三源互补（快讯/全球/深度） |
 | 推送 | Server 酱（Turbo 版） | https://sct.ftqq.com/ |
-| 图表 | matplotlib + 中文字体 | 待实现 |
-| 定时 | macOS launchd | 比 cron 更稳，开机自启 |
+| 图表 | matplotlib + PingFang SC | 封面图 + 行情总览 |
+| 定时 | macOS launchd | 每天 7:30 自动运行 |
 | 日志 | loguru | 比 logging 好用 |
 
 ## 目录结构
@@ -159,7 +159,6 @@ invest_brief/
 ## 注意事项
 
 1. **API key 永远不要进 git**（`.env` 在 `.gitignore` 中）
-2. **Wind 终端必须保持登录**：启动时做健康检查
-3. **DeepSeek 成本**：折扣期约 1-3 元/天
-4. **小红书绝不自动发布**：草稿生成后只推送给用户
-5. **输出不加免责声明**：用户自己审核，不需要"以上为 AI 辅助整理"那行
+2. **DeepSeek 成本**：约 1-3 元/天（thinking 模式 token 消耗较大）
+3. **小红书绝不自动发布**：草稿生成后只推送给用户
+4. **输出不加免责声明**：用户自己审核，不需要"以上为 AI 辅助整理"那行
