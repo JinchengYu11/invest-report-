@@ -88,15 +88,18 @@ def to_xiaohongshu_draft(
             default_flow_style=False,
         )
 
-    # ── 生成封面图 ──
+    # ── 生成图表 ──
     cover_path = None
+    chart_paths = []
     if wind_snapshot:
         try:
-            from src.utils.chart import generate_cover
-            cover_path = generate_cover(wind_snapshot, title, output_dir)
-            cover_path = str(cover_path)
+            from src.utils.chart import generate_cover, generate_market_overview
+            cover_path = str(generate_cover(wind_snapshot, title, output_dir))
+            overview_path = generate_market_overview(wind_snapshot, output_dir)
+            if overview_path:
+                chart_paths.append(str(overview_path))
         except Exception as e:
-            logger.warning(f"封面图生成失败：{e}")
+            logger.warning(f"图表生成失败：{e}")
 
     draft = DraftPackage(
         date=date_str,
@@ -104,12 +107,12 @@ def to_xiaohongshu_draft(
         body_markdown=summary_text,
         hashtags=hashtags,
         cover_image_path=cover_path,
-        chart_paths=[],
+        chart_paths=chart_paths,
     )
 
     logger.info(f"草稿已保存 → {output_dir}")
     logger.info(f"  body.md  : {len(summary_text)} 字符")
-    logger.info(f"  cover.png: {'✓' if cover_path else '✗'}")
+    logger.info(f"  cover.png: {'✓' if cover_path else '✗'}, charts: {len(chart_paths)}")
     logger.info(f"  hashtags : {' '.join(hashtags) if hashtags else '(未提取到)'}")
 
     return draft

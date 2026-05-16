@@ -20,6 +20,7 @@ from typing import Optional
 
 import requests
 from loguru import logger
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from src.utils.models import DailySnapshot
 
@@ -99,6 +100,7 @@ def _fetch_index_prices() -> dict:
 SECTOR_API = "https://push2.eastmoney.com/api/qt/clist/get"
 
 
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=15))
 def _fetch_top_sectors(top_n: int = 10) -> list[dict]:
     """
     拉取当日涨幅最大的行业板块。
@@ -120,7 +122,7 @@ def _fetch_top_sectors(top_n: int = 10) -> list[dict]:
     }
     resp = requests.get(
         SECTOR_API, params=params, headers=EM_HEADERS,
-        timeout=10, proxies={"http": None, "https": None},
+        timeout=10, proxies=NO_PROXY,
     )
     resp.raise_for_status()
     data = resp.json()
@@ -137,6 +139,7 @@ def _fetch_top_sectors(top_n: int = 10) -> list[dict]:
     return sectors
 
 
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=15))
 def _fetch_top_sectors_declining(top_n: int = 5) -> list[dict]:
     """拉取跌幅最大的行业板块"""
     params = {
@@ -153,7 +156,7 @@ def _fetch_top_sectors_declining(top_n: int = 5) -> list[dict]:
     }
     resp = requests.get(
         SECTOR_API, params=params, headers=EM_HEADERS,
-        timeout=10, proxies={"http": None, "https": None},
+        timeout=10, proxies=NO_PROXY,
     )
     resp.raise_for_status()
     data = resp.json()

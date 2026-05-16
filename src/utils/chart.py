@@ -174,6 +174,124 @@ def generate_cover(
     return cover_path
 
 
+def generate_market_overview(
+    snapshot,
+    output_dir: Path,
+) -> Optional[Path]:
+    """
+    生成行情总览图（900×700）：指数涨跌柱状图 + 行业板块强弱。
+
+    Args:
+        snapshot: 市场数据快照
+        output_dir: 输出目录
+
+    Returns:
+        图表文件路径，数据不足时返回 None
+    """
+    indices = snapshot.index_changes
+    extra = snapshot.extra
+    top_sectors = extra.get("top_sectors", [])[:5] if extra else []
+    bot_sectors = extra.get("bottom_sectors", [])[:3] if extra else []
+
+    if not indices and not top_sectors:
+        return None
+
+    width, height = 900, 700
+    dpi = 100
+    fig = plt.figure(figsize=(width / dpi, height / dpi), dpi=dpi, facecolor=BG_DARK)
+
+    # ── 左上：指数涨跌柱状图 ──
+    if indices:
+        ax1 = fig.add_axes([0.06, 0.42, 0.55, 0.52])
+        ax1.set_facecolor(BG_DARK)
+        names = list(indices.keys())
+        pcts = [v["pct"] for v in indices.values()]
+        colors = [ACCENT_RED if p >= 0 else ACCENT_GREEN for p in pcts]
+
+        bars = ax1.barh(names, pcts, color=colors, height=0.5)
+        ax1.invert_yaxis()
+        ax1.axvline(x=0, color=TEXT_GREY, linewidth=0.8, alpha=0.5)
+        ax1.set_title("A 股主要指数 涨跌幅 %", fontsize=13, color=TEXT_WHITE, pad=10)
+        ax1.tick_params(colors=TEXT_GREY, labelsize=11)
+        ax1.spines["top"].set_visible(False)
+        ax1.spines["right"].set_visible(False)
+        ax1.spines["left"].set_color(TEXT_GREY)
+        ax1.spines["bottom"].set_color(TEXT_GREY)
+        ax1.xaxis.label.set_color(TEXT_GREY)
+        ax1.yaxis.label.set_color(TEXT_GREY)
+
+        for bar, pct in zip(bars, pcts):
+            sign = "+" if pct >= 0 else ""
+            ax1.text(pct + (0.15 if pct >= 0 else -0.15), bar.get_y() + bar.get_height() / 2,
+                     f"{sign}{pct:.2f}%", ha="left" if pct >= 0 else "right",
+                     va="center", fontsize=10, color=TEXT_WHITE)
+
+    # ── 右上：利率 ──
+    ax2 = fig.add_axes([0.64, 0.42, 0.32, 0.52])
+    ax2.set_facecolor(BG_DARK)
+    ax2.axis("off")
+
+    y_r = 0.9
+    ax2.text(0, y_r, "国债收益率", fontsize=13, color=TEXT_WHITE, fontweight="bold")
+    cn_val = f"{snapshot.cn10y:.2f}%" if snapshot.cn10y else "--"
+    us_val = f"{snapshot.us10y:.2f}%" if snapshot.us10y else "--"
+    ax2.text(0, y_r - 0.12, f"CN 10Y", fontsize=11, color=TEXT_GREY)
+    ax2.text(0.5, y_r - 0.12, cn_val, fontsize=18, color=TEXT_WHITE, fontweight="bold", ha="right")
+    ax2.text(0, y_r - 0.28, f"US 10Y", fontsize=11, color=TEXT_GREY)
+    ax2.text(0.5, y_r - 0.28, us_val, fontsize=18, color=TEXT_WHITE, fontweight="bold", ha="right")
+
+    # 分隔线
+    ax2.plot([0, 0.5], [y_r - 0.38, y_r - 0.38], color=TEXT_GREY, linewidth=0.5, alpha=0.4)
+
+    # 北向资金
+    north = snapshot.north_flow
+    north_str = f"{north:.0f} 亿" if north else "未出库"
+    ax2.text(0, y_r - 0.52, "北向资金", fontsize=11, color=TEXT_GREY)
+    ax2.text(0.5, y_r - 0.52, north_str, fontsize=14, color=TEXT_WHITE, fontweight="bold", ha="right")
+
+    # ── 下半部：行业板块 ──
+    if top_sectors or bot_sectors:
+        ax3 = fig.add_axes([0.06, 0.05, 0.90, 0.30])
+        ax3.set_facecolor(BG_DARK)
+        ax3.axis("off")
+
+        # 领涨
+        ax3.text(0, 0.95, "领涨板块", fontsize=13, color=TEXT_WHITE, fontweight="bold")
+        y_pos = 0.70
+        for s in top_sectors:
+            pct = s["pct"]
+            bar_w = min(abs(pct) / 8, 0.35)  # 归一化到 0-0.35
+            ax3.add_patch(plt.Rectangle((0, y_pos), bar_w, 0.12,
+                         color=ACCENT_RED, alpha=0.7))
+            ax3.text(0.01, y_pos + 0.06, s["name"], fontsize=10, color=TEXT_WHITE, va="center")
+            ax3.text(bar_w + 0.01, y_pos + 0.06, f"+{pct:.1f}%",
+                     fontsize=10, color=ACCENT_RED, va="center", fontweight="bold")
+            y_pos -= 0.17
+
+        # 领跌
+        ax3.text(0.50, 0.95, "领跌板块", fontsize=13, color=TEXT_WHITE, fontweight="bold")
+        y_pos = 0.70
+        for s in bot_sectors:
+            pct = s["pct"]
+            bar_w = min(abs(pct) / 8, 0.35)
+            ax3.add_patch(plt.Rectangle((0.50 + 0.35 - bar_w, y_pos), bar_w, 0.12,
+                         color=ACCENT_GREEN, alpha=0.7))
+            ax3.text(0.51, y_pos + 0.06, s["name"], fontsize=10, color=TEXT_WHITE, va="center")
+            ax3.text(0.50 + 0.35 - bar_w - 0.05, y_pos + 0.06, f"{pct:.1f}%",
+                     fontsize=10, color=ACCENT_GREEN, va="center", fontweight="bold", ha="right")
+            y_pos -= 0.17
+
+    # 保存
+    output_dir.mkdir(parents=True, exist_ok=True)
+    chart_path = output_dir / "market_overview.png"
+    fig.savefig(chart_path, dpi=dpi, bbox_inches="tight", pad_inches=0.3,
+                facecolor=BG_DARK, edgecolor="none")
+    plt.close(fig)
+
+    logger.info(f"行情总览图已生成 → {chart_path}")
+    return chart_path
+
+
 def _wrap_text(text: str, max_chars: int = 18, max_lines: int = 3) -> list:
     """简单折行，按 max_chars 断行，最多 max_lines 行"""
     lines = []
