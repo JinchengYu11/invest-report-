@@ -76,6 +76,7 @@
 invest_brief/
 ├── CLAUDE.md              # 本文件
 ├── README.md              # 用户上手文档
+├── run.py                 # ⭐ 统一入口（daily / ask / report）
 ├── requirements.txt
 ├── .env.example
 ├── .gitignore
@@ -84,8 +85,11 @@ invest_brief/
 │   ├── sectors.yaml       # 关注板块定义、关键词、Wind 代码
 │   └── settings.yaml      # 全局设置（LLM/输出/定时）
 │
+├── vendor/                # 第三方依赖（git clone 放入，不入 git）
+│   └── dexter/            # virattt/dexter 金融研究 Agent
+│
 ├── src/
-│   ├── main.py            # 主入口（5 步流程已串联）
+│   ├── main.py            # 每日简报（5 步流程）
 │   ├── collectors/
 │   │   ├── news_cls.py      # 财联社电报采集
 │   │   ├── news_global.py   # Google News RSS 全球新闻
@@ -98,6 +102,9 @@ invest_brief/
 │   │   └── formatter.py   # DraftPackage 生成
 │   ├── publishers/
 │   │   └── serverchan.py  # Server 酱微信推送
+│   ├── qa/                   # 即时问答（Dexter 集成）
+│   │   ├── bridge.py          # Python ↔ Dexter 子进程桥接
+│   │   └── wind_tools.py      # A 股行情上下文注入
 │   └── utils/
 │       ├── models.py      # 数据模型
 │       ├── llm.py         # DeepSeek 客户端封装
@@ -126,6 +133,33 @@ invest_brief/
 6. **类型注解**：函数参数和返回值都加 type hint
 7. **配置外置**：所有"可能改的"参数放进 `config/*.yaml`，不要硬编码
 
+## Dexter 即时问答
+
+Dexter（[virattt/dexter](https://github.com/virattt/dexter)）是一个 TypeScript 金融研究 Agent，
+用 Bun 运行，内置 Yahoo Finance 等数据工具。
+
+**部署步骤：**
+1. `mkdir -p vendor && cd vendor && git clone https://github.com/virattt/dexter.git`
+2. `cd dexter && bun install && cp env.example .env`
+3. 回到项目根，`python run.py ask "你的问题"`
+4. bridge.py 会自动在 vendor/dexter/ 下创建 ask.ts（单问封装）
+
+**工作原理：**
+```
+python run.py ask "今天AI板块怎么样？"
+  → src/qa/bridge.py
+     → wind_tools.enrich_question() → 注入 A 股行情上下文
+     → subprocess: bun run ask.ts "问题"
+        → Dexter Agent.create() + agent.run()
+        → DeepSeek V4 Pro（从 .env 读取 DEEPSEEK_API_KEY）
+     → 返回答案
+```
+
+**Dexter 使用 DeepSeek**：
+- Dexter 的 providers.ts 已支持 `deepseek-` 前缀
+- modelPrefix=`deepseek-`，baseURL=`https://api.deepseek.com`
+- v4-pro 自动启用 thinking 模式
+
 ## 内容调优（最重要）
 
 输出质量 90% 取决于 prompt，不要改代码逻辑：
@@ -151,10 +185,11 @@ invest_brief/
 3. 改 `config/sectors.yaml`（加板块关键词）
 
 ### 跑当天 / 指定日期 / 调试
-- `source venv/bin/activate && python src/main.py`                       # 当天
-- `python src/main.py --date 2025-11-01`                                # 历史回测
-- `DRY_RUN=true python src/main.py`                                     # 只生成不推送
+- `python run.py daily`                                                 # 当天简报
+- `python run.py daily --dry-run`                                       # 只生成不推送
 - `DRY_RUN=true python src/main.py --date 2025-11-01`                   # 历史回测 + 不推送
+- `python run.py ask "今天AI板块怎么看？"`                                # Dexter 问答
+- `python run.py report 300750.SZ`                                      # 个股深度（后续）
 
 ## 注意事项
 
