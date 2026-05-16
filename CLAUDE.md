@@ -29,13 +29,15 @@
 | 草稿生成 | `src/processors/formatter.py` | 完成 |
 | 封面图 | `src/utils/chart.py` | 完成（matplotlib 900×1200） |
 | 推送 | `src/publishers/serverchan.py` | 完成（Server 酱 → 微信） |
+| 个股报告 | `src/qa/report.py` | 完成（行情+研报 → Dexter 合成 → 微信推送） |
 | 定时 | `scripts/com.user.invest_brief.plist` | ✅ 已部署（每天 7:30） |
 | LLM 容错 | `src/utils/llm.py` | ✅ 已加固（180s 超时，5 次重试） |
 
 **尚未完成**：
 - 更多图表类型（行业热力图、历史走势小图）
-- WindPy 接入（Mac App Store 版 Wind 不支持 Python 接口，需联系客服要非沙盒版 DMG）
-- 第三个新闻源（华尔街见闻，API 已锁需登录，暂不可用）
+- WindPy 接入（等万得客服回复非沙盒版 Mac DMG）
+- 华尔街见闻新闻源（API 已锁需登录）
+- 报告支持美股（当前仅 A 股）
 
 ### 内容框架（已迭代多轮）
 
@@ -190,7 +192,7 @@ python run.py ask "今天AI板块怎么样？"
 - `python run.py daily --dry-run`                                       # 只生成不推送
 - `DRY_RUN=true python src/main.py --date 2025-11-01`                   # 历史回测 + 不推送
 - `python run.py ask "今天AI板块怎么看？"`                                # Dexter 问答
-- `python run.py report 688008.SH`                                      # 个股深度报告
+- `python run.py report 688008.SH`                                      # 个股深度报告（→ 微信推送）
 
 ## 注意事项
 
