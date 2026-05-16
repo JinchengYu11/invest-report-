@@ -21,34 +21,33 @@ sys.path.insert(0, str(ROOT))
 
 
 def _format_snapshot(snapshot) -> str:
-    """将 DailySnapshot 格式化为自然语言上下文"""
-    lines = ["【A 股今日行情数据】"]
+    """将 DailySnapshot 格式化为简洁的上下文"""
+    lines = ["【A 股行情】"]
 
-    # 指数
+    # 指数（精简：只保留名称和涨跌幅）
     indices = snapshot.index_changes
     if indices:
         idx_strs = []
         for name, v in indices.items():
-            close = v.get("close", "N/A")
             pct = v.get("pct", "N/A")
-            sign = "+" if (pct if isinstance(pct, (int, float)) else 0) >= 0 else ""
-            idx_strs.append(f"{name} {close}（{sign}{pct}%）")
-        lines.append("主要指数：" + "，".join(idx_strs))
-    else:
-        lines.append("主要指数：暂无数据")
+            if isinstance(pct, (int, float)):
+                idx_strs.append(f"{name}{pct:+.2f}%")
+            else:
+                idx_strs.append(f"{name}{pct}")
+        lines.append("指数：" + "，".join(idx_strs))
 
-    # 国债
+    # 国债（精简）
     yields_parts = []
     if snapshot.cn10y:
-        yields_parts.append(f"中国10Y国债 {snapshot.cn10y}%")
+        yields_parts.append(f"CN10Y={snapshot.cn10y}%")
     if snapshot.us10y:
-        yields_parts.append(f"美国10Y国债 {snapshot.us10y}%")
+        yields_parts.append(f"US10Y={snapshot.us10y}%")
     if yields_parts:
-        lines.append("国债收益率：" + "，".join(yields_parts))
+        lines.append("利率：" + "，".join(yields_parts))
 
     # 北向
     if snapshot.north_flow:
-        lines.append(f"北向资金净买额：{snapshot.north_flow} 亿元")
+        lines.append(f"北向资金：{snapshot.north_flow}亿")
 
     # 行业板块
     extra = snapshot.extra
@@ -57,10 +56,10 @@ def _format_snapshot(snapshot) -> str:
         bot = extra.get("bottom_sectors", [])[:3]
         if top:
             top_str = "、".join(f"{s['name']}+{s['pct']}%" for s in top)
-            lines.append(f"领涨板块：{top_str}")
+            lines.append(f"领涨：{top_str}")
         if bot:
             bot_str = "、".join(f"{s['name']}{s['pct']}%" for s in bot)
-            lines.append(f"领跌板块：{bot_str}")
+            lines.append(f"领跌：{bot_str}")
 
     return "\n".join(lines)
 

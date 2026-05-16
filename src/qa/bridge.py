@@ -29,7 +29,8 @@ sys.path.insert(0, str(ROOT))
 load_dotenv(ROOT / ".env")
 
 DEXTER_DIR = ROOT / "vendor" / "dexter"
-ASK_SCRIPT = DEXTER_DIR / "ask.ts"
+ASK_TS = DEXTER_DIR / "ask.ts"
+ASK_SH = ROOT / "deps" / "dexter_ask.sh"
 
 
 ASK_TS_CONTENT = r"""#!/usr/bin/env bun
@@ -91,9 +92,9 @@ def _ensure_dexter_installed():
         )
 
     # 自动创建 ask.ts
-    if not ASK_SCRIPT.exists():
-        ASK_SCRIPT.write_text(ASK_TS_CONTENT, encoding="utf-8")
-        logger.info(f"已自动创建 {ASK_SCRIPT}")
+    if not ASK_TS.exists():
+        ASK_TS.write_text(ASK_TS_CONTENT, encoding="utf-8")
+        logger.info(f"已自动创建 {ASK_TS}")
 
 
 def ask_dexter(
@@ -101,7 +102,7 @@ def ask_dexter(
     *,
     enrich_with_market: bool = True,
     model: Optional[str] = None,
-    timeout_seconds: int = 300,
+    timeout_seconds: int = 600,
 ) -> str:
     """
     向 Dexter 提问，返回答案。
@@ -136,31 +137,44 @@ def ask_dexter(
     if not env["DEEPSEEK_API_KEY"]:
         raise RuntimeError("DEEPSEEK_API_KEY 未在 .env 中设置")
 
+    # 确保 bun 在 PATH 中
+    bun_home = os.path.expanduser("~/.bun")
+    bun_bin = os.path.join(bun_home, "bin")
+    if bun_bin not in env.get("PATH", ""):
+        env["PATH"] = f"{bun_bin}:{env.get('PATH', '')}"
+
     if model:
         env["DEXTER_MODEL"] = model
 
     logger.info(f"调用 Dexter，问题长度 {len(question)} 字符...")
 
-    # 调用 ask.ts
+    # 通过 deps/dexter_ask.sh 调用，环境变量由 subprocess 直接注入
+    # stdin=DEVNULL 是必须的 — Bun 在无 stdin 时会阻塞等待输入
     result = subprocess.run(
-        ["bun", "run", str(ASK_SCRIPT), question],
+        ["bash", str(ASK_SH), question],
         cwd=str(DEXTER_DIR),
         env=env,
+        stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
         timeout=timeout_seconds,
     )
 
-    if result.returncode != 0:
-        stderr = result.stderr.strip()
-        logger.error(f"Dexter 返回非零退出码：{result.returncode}")
-        if stderr:
-            logger.error(stderr)
-        raise RuntimeError(f"Dexter 执行失败：{stderr}")
-
+    # Dexer 内部搜索工具 401 错误会打印到 stderr，忽略之
     answer = result.stdout.strip()
+    if answer:
+        # 过滤掉可能混入的 HTTP error dump 行
+        lines = [
+            l for l in answer.split("\n")
+            if not l.startswith("Response (") and "Unauthorized" not in l
+        ]
+        answer = "\n".join(lines).strip()
+
     if not answer:
-        raise RuntimeError("Dexter 返回空答案")
+        stderr_tail = (result.stderr or "")[-200:]
+        raise RuntimeError(
+            f"Dexter 未返回答案（exit={result.returncode}，stderr={stderr_tail[:150]}）"
+        )
 
     logger.info(f"Dexter 回答长度：{len(answer)} 字符")
     return answer
