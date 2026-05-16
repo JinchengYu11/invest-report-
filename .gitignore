@@ -27,5 +27,8 @@ ENV/
 *.swp
 .DS_Store
 
+# 第三方依赖（手动 clone）
+vendor/
+
 # Jupyter
 .ipynb_checkpoints/
