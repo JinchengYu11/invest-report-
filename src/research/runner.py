@@ -57,15 +57,14 @@ def _sync_env():
     # 1) LLM — DeepSeek 直连
     ds_key = os.getenv("DEEPSEEK_API_KEY", "")
 
-    # 2) VLM — SiliconFlow
-    sf_key = os.getenv("SILICONFLOW_API_KEY", "")
-    if not sf_key:
+    # 2) VLM — Gemini Pro（付费，视觉能力强）
+    gemini_key = os.getenv("GEMINI_API_KEY", "")
+    if not gemini_key:
         logger.warning(
-            "SILICONFLOW_API_KEY 未在项目 .env 中设置。"
-            "FinSight 的 VLM 图表审评（图表质量反馈）将无法工作。"
-            "请前往 https://siliconflow.cn 注册免费账号，在项目 .env 中加上：\n"
-            "  SILICONFLOW_API_KEY=sk-xxx\n"
-            "  VLM 推荐模型：Qwen/Qwen2.5-VL-32B-Instruct"
+            "GEMINI_API_KEY 未在项目 .env 中设置。"
+            "FinSight 的 VLM 图表审评将无法工作。"
+            "请前往 https://aistudio.google.com/apikey 生成 API key，在项目 .env 中加上：\n"
+            "  GEMINI_API_KEY=AIza..."
         )
 
     # 3) Embedding — SiliconFlow
@@ -102,10 +101,10 @@ def _sync_env():
         f"DS_API_KEY={ds_key}",
         "DS_BASE_URL=https://api.deepseek.com",
         "",
-        "# VLM — SiliconFlow 免费",
-        "VLM_MODEL_NAME=Qwen/Qwen2.5-VL-32B-Instruct",
-        f"VLM_API_KEY={sf_key}",
-        "VLM_BASE_URL=https://api.siliconflow.cn/v1",
+        "# VLM — Gemini Pro（OpenAI 兼容端）",
+        "VLM_MODEL_NAME=gemini-2.5-pro",
+        f"VLM_API_KEY={gemini_key}",
+        "VLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/",
         "",
         "# Embedding — SiliconFlow 免费",
         f"EMBEDDING_MODEL_NAME={emb_model or 'BAAI/bge-large-zh-v1.5'}",
@@ -119,6 +118,27 @@ def _sync_env():
 
     env_path.write_text("\n".join(lines), encoding="utf-8")
     logger.info(f"FinSight .env 已同步 → {env_path}")
+
+    # ── 应用 FinSight 源码补丁 ──
+    _apply_finsight_patches()
+
+
+def _apply_finsight_patches():
+    """将 deps/finsight_patches/ 下的修改文件复制到 vendor/finsight/"""
+    patches_dir = ROOT / "deps" / "finsight_patches"
+    if not patches_dir.exists():
+        return
+
+    import shutil
+    for patch_file in patches_dir.rglob("*"):
+        if patch_file.is_file():
+            rel = patch_file.relative_to(patches_dir)
+            target = FINSIGHT_DIR / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            # 只复制更新的文件（避免每次覆盖时间戳）
+            if not target.exists() or patch_file.read_bytes() != target.read_bytes():
+                shutil.copy2(patch_file, target)
+                logger.info(f"FinSight 补丁已应用：{rel}")
 
 
 def _build_config(
@@ -174,21 +194,21 @@ def _build_config(
     # 收集/分析任务
     if target_type == "financial_company":
         collect_tasks = [
-            "资产负债表, 利润表, 现金流量表三大财务报表",
-            "股票基本信息以及股价数据",
-            "股东结构",
-            "投资评级",
-            "公司市销率, 净资产收益率(ROE), 市盈率, 市净率",
-            "公司主要竞争对手情况",
+            f"{target_name}主营业务、产品线、收入结构、客户构成",
+            f"{target_name}近5年营收、净利润、毛利率、净利率、ROE、现金流",
+            f"{target_name}资产负债表、利润表、现金流量表三大财务报表",
+            f"{target_name}股价历史数据、成交量、市值变化",
+            f"{target_name}股东结构、机构持仓、港股通持股",
+            f"{target_name}主要竞争对手及市场份额对比",
         ]
         analysis_tasks = [
-            "梳理公司发展历程、关键里程碑事件及当前核心主营业务范围",
-            "分析公司产业链位置及竞争壁垒",
-            "分析历年营收趋势、各业务板块占比变化及增长驱动因素",
-            "评估公司盈利能力（ROE、毛利率、净利率）及运营效率",
-            "进行同行业竞争对手对比分析，评估行业地位",
-            "复盘近2年股价走势，分析关键事件对股价的影响",
-            "预测未来两年核心财务数据，进行估值分析",
+            f"梳理{target_name}发展历程、关键里程碑及核心主营业务",
+            f"分析{target_name}产业链位置、技术壁垒与竞争格局",
+            f"分析{target_name}历年营收趋势、各业务板块占比及增长驱动",
+            f"评估{target_name}盈利能力（ROE、毛利率、净利率）及运营效率",
+            f"对比{target_name}与同行业竞争对手（市场份额、技术、估值）",
+            f"复盘{target_name}近2年股价走势，分析关键事件影响",
+            f"基于历史财务数据，预测{target_name}未来两年业绩并做估值分析",
         ]
     elif target_type == "industry":
         collect_tasks = [
@@ -259,7 +279,14 @@ def _build_config(
         ],
     }
 
-    config_path = FINSIGHT_DIR / "my_config_auto.yaml"
+    # FinSight 的 run_report.py 硬编码读取 my_config.yaml，所以写到这里
+    config_path = FINSIGHT_DIR / "my_config.yaml"
+    # 先备份原有配置（如果是第一次跑）
+    backup_path = FINSIGHT_DIR / "my_config_backup.yaml"
+    if config_path.exists() and not backup_path.exists():
+        shutil.copy2(config_path, backup_path)
+        logger.info(f"原有 my_config.yaml 已备份为 my_config_backup.yaml")
+
     with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
@@ -293,6 +320,7 @@ def _run_finsight(timeout_seconds: int = 3600) -> bool:
     调用 FinSight run_report.py。
 
     使用 Python 3.11 venv，cwd 设到 FinSight 目录。
+    输出实时写入 logs/finsight_YYYYMMDD_HHMMSS.log 供查看进度。
     超时默认 1 小时。
 
     Returns:
@@ -304,42 +332,52 @@ def _run_finsight(timeout_seconds: int = 3600) -> bool:
         logger.error(f"  ~/.pyenv/versions/3.11.11/bin/python3 -m venv {FINSIGHT_PYTHON.parent}")
         return False
 
+    # 日志文件：实时写入，可在终端 tail -f 查看
+    log_dir = ROOT / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir / f"finsight_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+
     logger.info("启动 FinSight 深度研报生成...")
+    logger.info(f"进度日志：{log_path}")
+    logger.info(f"（终端查看：tail -f {log_path}）")
     logger.info("（预计 20-40 分钟，请耐心等待）")
 
     try:
-        result = subprocess.run(
-            [str(FINSIGHT_PYTHON), "run_report.py"],
-            cwd=str(FINSIGHT_DIR),
-            capture_output=True,
-            text=True,
-            timeout=timeout_seconds,
-        )
+        with open(log_path, "w", encoding="utf-8") as log_f:
+            process = subprocess.Popen(
+                [str(FINSIGHT_PYTHON), "run_report.py"],
+                cwd=str(FINSIGHT_DIR),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,  # 合并 stderr 到 stdout
+                text=True,
+                bufsize=1,  # 行缓冲
+            )
 
-        # 打印关键日志
-        for line in result.stdout.split("\n"):
-            if any(kw in line for kw in ["INFO", "ERROR", "WARNING", "完成", "finished", "error"]):
-                logger.info(f"[FinSight] {line.strip()[:200]}")
+            try:
+                for line in process.stdout:
+                    log_f.write(line)
+                    log_f.flush()
+                    # 同时打印关键行到 logger
+                    if any(kw in line for kw in ["INFO", "ERROR", "完成", "finished", "Progress"]):
+                        logger.info(f"[FinSight] {line.strip()[:200]}")
 
-        if result.stderr:
-            stderr_lines = result.stderr.strip().split("\n")
-            # 只打印有意义的错误行
-            for line in stderr_lines[-20:]:
-                if line.strip():
-                    logger.warning(f"[FinSight stderr] {line.strip()[:200]}")
+                process.wait(timeout=timeout_seconds)
 
-        if result.returncode != 0:
-            logger.error(f"FinSight 退出码非零：{result.returncode}")
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+                logger.error(f"FinSight 运行超时（>{timeout_seconds}s），已终止。日志保留在 {log_path}")
+                return False
+
+        if process.returncode != 0:
+            logger.error(f"FinSight 退出码非零：{process.returncode}。日志：{log_path}")
             return False
 
-        logger.info("FinSight 运行完成")
+        logger.info(f"FinSight 运行完成。完整日志：{log_path}")
         return True
 
-    except subprocess.TimeoutExpired:
-        logger.error(f"FinSight 运行超时（>{timeout_seconds}s），已终止")
-        return False
     except Exception as e:
-        logger.error(f"FinSight 运行异常：{e}")
+        logger.error(f"FinSight 运行异常：{e}。日志：{log_path}")
         return False
 
 
