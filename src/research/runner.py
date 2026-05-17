@@ -101,6 +101,11 @@ def _sync_env():
         f"DS_API_KEY={ds_key}",
         "DS_BASE_URL=https://api.deepseek.com",
         "",
+        "# LLM（采集阶段） — DeepSeek Flash 直连（更快更便宜）",
+        "DEEPSEEK_FLASH_MODEL_NAME=deepseek-v4-flash",
+        f"DEEPSEEK_FLASH_API_KEY={ds_key}",
+        "DEEPSEEK_FLASH_BASE_URL=https://api.deepseek.com",
+        "",
         "# VLM — Gemini Pro（OpenAI 兼容端）",
         "VLM_MODEL_NAME=gemini-2.5-pro",
         f"VLM_API_KEY={gemini_key}",
@@ -263,6 +268,16 @@ def _build_config(
                 "generation_params": {
                     "temperature": 0.7,
                     "max_tokens": 32768,
+                    "top_p": 0.95,
+                },
+            },
+            {
+                "model_name": "${DEEPSEEK_FLASH_MODEL_NAME}",
+                "api_key": "${DEEPSEEK_FLASH_API_KEY}",
+                "base_url": "${DEEPSEEK_FLASH_BASE_URL}",
+                "generation_params": {
+                    "temperature": 0.7,
+                    "max_tokens": 8192,
                     "top_p": 0.95,
                 },
             },

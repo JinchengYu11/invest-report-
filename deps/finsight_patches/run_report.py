@@ -29,6 +29,7 @@ async def run_report(resume: bool = True, max_concurrent: int = None):
         max_concurrent: Maximum number of concurrent tasks. If None, uses MAX_CONCURRENT env var or unlimited.
     """
     use_llm_name = os.getenv("DS_MODEL_NAME")
+    use_flash_name = os.getenv("DEEPSEEK_FLASH_MODEL_NAME", use_llm_name)
     use_vlm_name = os.getenv("VLM_MODEL_NAME")
     use_embedding_name = os.getenv("EMBEDDING_MODEL_NAME")
     
@@ -119,7 +120,7 @@ async def run_report(resume: bool = True, max_concurrent: int = None):
                 'resume': resume,
             },
             'agent_kwargs': {
-                'use_llm_name': use_llm_name,
+                'use_llm_name': use_flash_name,   # 采集用 flash 提速降本
             },
             'priority': 1,
         })
